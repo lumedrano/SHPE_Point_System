@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <style>
+   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Poppins', sans-serif;
+  color: #333;
+  animation: fadeIn 1.5s forwards;
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.overlay {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 1.5s forwards;
+}
+
+.form {
+  padding: 40px;
+  background-color: #fff;
+  max-width: 450px;
+  text-align: center;
+  border-radius: 20px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.submit-btn {
+  background: linear-gradient(135deg, #f58220 0%, #fca561 100%);
+  color: #fff;
+  border: none;
+  padding: 14px 28px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.submit-btn:hover {
+  background: linear-gradient(135deg, #d16400 0%, #f58220 100%);
+  transform: scale(1.1);
+}
+
+.form:hover {
+  transform: translateY(-5px);
+}
+
+.form-field {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.form input {
+  padding: 12px 15px;
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+  outline: none;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.message-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  z-index: 1001;
+  opacity: 0;
+  transition: transform 0.4s ease, opacity 0.4s ease;
+}
+
+.message-popup.show {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+
+.message-popup h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  color: #4caf50;
+}
+
+.message-popup button {
+  background-color: #f58220;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.message-popup button:hover {
+  background-color: #d16400;
+}
+
+.message-popup button:focus {
+  outline: none;
+}
+
+/* Animation for page fade-in */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Confetti styles */
+.confetti {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  background-color: #f58220;
+  z-index: 1000;
+  animation: confetti-fall 2s ease-out forwards;
+  opacity: 0.8;
+  border-radius: 50%;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.checkmark, .hazard {
+  font-size: 48px;
+  opacity: 0;
+  transform: scale(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.checkmark {
+  color: #4caf50; /* Green for success */
+}
+
+.hazard {
+  color: #ffeb3b; /* Yellow for non-success */
+}
+
+.checkmark.show, .hazard.show {
+  opacity: 1;
+  transform: scale(1);
+}
+  </style>
+  <script>
+function submitForm() {
+  var utEid = document.getElementById('eid').value;
+
+  google.script.run.withSuccessHandler(handleResponse).addToGoogleSheet(utEid);
+
+  // Clear input fields after submitting
+  document.getElementById('eid').value = '';
+}
+
+function handleResponse(response) {
+  // Display the message in the pop-up
+  var popup = document.getElementById('messagePopup');
+  var messageDiv = document.getElementById('messageText');
+  
+  // Determine the icon and text based on the response
+  let icon;
+  if (response.startsWith("Success:")) {
+    icon = '✔️'; // Green checkmark
+    messageDiv.style.color = '#4caf50'; // Green color for success
+    // Trigger confetti for success
+    triggerConfetti();
+  } else {
+    icon = '⚠️'; // Yellow hazard
+    messageDiv.style.color = '#f58220'; // Orange color for warning
+  }
+
+  // Set the message with the icon
+  messageDiv.textContent = `${icon} ${response}`;
+
+  // Show the pop-up with animation
+  popup.classList.add('show');
+}
+
+function toggleEidVisibility() {
+  var eidInput = document.getElementById('eid');
+  var visibilityIcon = document.getElementById('toggleVisibility');
+
+  if (eidInput.type === 'password') {
+    eidInput.type = 'text';
+    visibilityIcon.innerHTML = '<i class="fas fa-eye-slash"></i>';
+  } else {
+    eidInput.type = 'password';
+    visibilityIcon.innerHTML = '<i class="fas fa-eye"></i>';
+  }
+}
+
+function triggerConfetti() {
+  for (let i = 0; i < 100; i++) {
+    createConfetti();
+  }
+}
+
+function createConfetti() {
+  const confetti = document.createElement('div');
+  confetti.classList.add('confetti');
+  document.body.appendChild(confetti);
+
+  // Random positions and colors
+  confetti.style.left = Math.random() * window.innerWidth + 'px';
+  confetti.style.top = Math.random() * -window.innerHeight + 'px'; 
+  confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+
+  // Random delay and duration
+  confetti.style.animationDelay = Math.random() * 2 + 's';
+  confetti.style.animationDuration = Math.random() * 3 + 1.5 + 's';
+
+  // Remove confetti after it falls
+  setTimeout(() => {
+    confetti.remove();
+  }, 4000);
+}
+
+function closePopup() {
+  var popup = document.getElementById('messagePopup');
+  popup.classList.remove('show');
+}
+  </script>
+</head>
+<body>
+ <div class="container">
+  <div class="overlay">
+    <div class="form">
+      <h2>Welcome to the meeting! Enter your info to Check-in!</h2>
+      
+      <input type="password" id="eid" placeholder="UT EID">
+      <span id="toggleVisibility" onclick="toggleEidVisibility()"><i class="fas fa-eye"></i></span>
+
+      <button class="submit-btn" onclick="submitForm()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Popup message container -->
+<div id="messagePopup" class="message-popup">
+  <h3 id="messageText"></h3>
+  <button onclick="closePopup()">Close</button>
+</div>
+
+</body>
+</html>
