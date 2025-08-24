@@ -77,6 +77,15 @@ body {
   transition: border-color 0.3s, box-shadow 0.3s;
 }
 
+.visibility-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #888;
+}
+
 .message-popup {
   position: fixed;
   top: 50%;
@@ -123,12 +132,8 @@ body {
 
 /* Animation for page fade-in */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Confetti styles */
@@ -144,67 +149,42 @@ body {
 }
 
 @keyframes confetti-fall {
-  0% {
-    transform: translateY(0) rotate(0deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(100vh) rotate(720deg);
-    opacity: 0;
-  }
-}
-
-.checkmark, .hazard {
-  font-size: 48px;
-  opacity: 0;
-  transform: scale(0);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.checkmark {
-  color: #4caf50; /* Green for success */
-}
-
-.hazard {
-  color: #ffeb3b; /* Yellow for non-success */
-}
-
-.checkmark.show, .hazard.show {
-  opacity: 1;
-  transform: scale(1);
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
 }
   </style>
   <script>
 function submitForm() {
-  var utEid = document.getElementById('eid').value;
+  var utEid = document.getElementById('eid').value.trim();
+  var meetingId = document.getElementById('meetingId').value.trim().toUpperCase();
 
-  google.script.run.withSuccessHandler(handleResponse).addToGoogleSheet(utEid);
+  if (!utEid || !meetingId) {
+    handleResponse("⚠️ Please enter both EID and Meeting ID.");
+    return;
+  }
 
-  // Clear input fields after submitting
+  google.script.run.withSuccessHandler(handleResponse)
+    .addToGoogleSheet(utEid, meetingId);
+
   document.getElementById('eid').value = '';
+  document.getElementById('meetingId').value = '';
 }
 
 function handleResponse(response) {
-  // Display the message in the pop-up
   var popup = document.getElementById('messagePopup');
   var messageDiv = document.getElementById('messageText');
-  
-  // Determine the icon and text based on the response
+
   let icon;
-  if (response.startsWith("Success:")) {
-    icon = '✔️'; // Green checkmark
-    messageDiv.style.color = '#4caf50'; // Green color for success
-    // Trigger confetti for success
+  if (response.startsWith("✔️ Success")) {
+    icon = '✔️';
+    messageDiv.style.color = '#4caf50';
     triggerConfetti();
   } else {
-    icon = '⚠️'; // Yellow hazard
-    messageDiv.style.color = '#f58220'; // Orange color for warning
+    icon = '⚠️';
+    messageDiv.style.color = '#f58220';
   }
 
-  // Set the message with the icon
   messageDiv.textContent = `${icon} ${response}`;
-
-  // Show the pop-up with animation
   popup.classList.add('show');
 }
 
@@ -222,9 +202,7 @@ function toggleEidVisibility() {
 }
 
 function triggerConfetti() {
-  for (let i = 0; i < 100; i++) {
-    createConfetti();
-  }
+  for (let i = 0; i < 100; i++) createConfetti();
 }
 
 function createConfetti() {
@@ -232,24 +210,17 @@ function createConfetti() {
   confetti.classList.add('confetti');
   document.body.appendChild(confetti);
 
-  // Random positions and colors
   confetti.style.left = Math.random() * window.innerWidth + 'px';
   confetti.style.top = Math.random() * -window.innerHeight + 'px'; 
   confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
-
-  // Random delay and duration
   confetti.style.animationDelay = Math.random() * 2 + 's';
   confetti.style.animationDuration = Math.random() * 3 + 1.5 + 's';
 
-  // Remove confetti after it falls
-  setTimeout(() => {
-    confetti.remove();
-  }, 4000);
+  setTimeout(() => { confetti.remove(); }, 4000);
 }
 
 function closePopup() {
-  var popup = document.getElementById('messagePopup');
-  popup.classList.remove('show');
+  document.getElementById('messagePopup').classList.remove('show');
 }
   </script>
 </head>
@@ -257,21 +228,27 @@ function closePopup() {
  <div class="container">
   <div class="overlay">
     <div class="form">
-      <h2>Welcome to the meeting! Enter your info to Check-in!</h2>
-      
-      <input type="password" id="eid" placeholder="UT EID">
-      <span id="toggleVisibility" onclick="toggleEidVisibility()"><i class="fas fa-eye"></i></span>
+      <h2>Welcome! Enter your info to Check-in!</h2>
+
+      <div class="form-field">
+        <input type="password" id="eid" placeholder="EID">
+        <span id="toggleVisibility" class="visibility-toggle" onclick="toggleEidVisibility()">
+          <i class="fas fa-eye"></i>
+        </span>
+      </div>
+
+      <div class="form-field">
+        <input type="text" id="meetingId" placeholder="Meeting ID">
+      </div>
 
       <button class="submit-btn" onclick="submitForm()">Submit</button>
     </div>
   </div>
 </div>
 
-<!-- Popup message container -->
 <div id="messagePopup" class="message-popup">
   <h3 id="messageText"></h3>
   <button onclick="closePopup()">Close</button>
 </div>
-
 </body>
 </html>
