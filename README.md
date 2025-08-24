@@ -1,106 +1,128 @@
 # Member Points & Check-In System - Luigi Medrano
 
-This project is a Google Apps Script + Google Sheets web app that allows members to **check in at meetings** and view a **leaderboard of points**.
+This project is a Google Apps Script + Google Sheets web app that allows
+members to **check in at meetings** and view a **leaderboard of
+points**.\
 It is organized into two separate apps:
 
----
+------------------------------------------------------------------------
 
 ## `point_system/` (Meeting Check-In App)
 
 ### Purpose
 
-The check-in app is designed for **meeting attendance tracking**.
-Members enter their **EID** during a valid meeting time slot, and the script records their attendance in the spreadsheet.
+The check-in app is designed for **meeting attendance tracking**.\
+Members enter their **EID** and **Meeting ID** during a valid meeting
+time slot, and the script records their attendance and awards points in
+the spreadsheet.
 
 ### How it works
 
-* **`doGet(e)`** → serves the HTML check-in form.
-* **HTML form (`index.html`)** → provides a styled check-in page where members type their UT EID.
-* **`submitForm()` (client-side JS)** → runs when the "Submit" button is clicked. Calls the server-side function using:
+-   **`doGet(e)`** → serves the HTML check-in form.\
 
-  ```javascript
-  google.script.run.addToGoogleSheet(utEid);
-  ```
-* **`addToGoogleSheet(eid)`** → server-side entry point. Calls `userClicked()`.
-* **`userClicked(eid)`**:
+-   **HTML form (`index.html`)** → provides a styled check-in page where
+    members type their UT EID and Meeting ID.\
 
-  * Reads the sheet header row to find the current meeting column (based on date & time).
-  * Checks if the member’s EID exists in **column B**.
-  * If within the valid meeting window, writes `1` into the matching cell to mark attendance.
-  * Prevents double check-ins by only allowing one `1` per meeting.
-* **Feedback** → success/warning popup is shown to the user, with confetti for successful check-ins 🎉.
+-   **`submitForm()` (client-side JS)** → runs when the "Submit" button
+    is clicked, calling the server-side script via:
+
+    ``` javascript
+    google.script.run.addToGoogleSheet(utEid, meetingId);
+    ```
+
+-   **`addToGoogleSheet(eid, meetingId)`** (server-side):
+
+    -   Validates that the **EID** exists in the `Members` sheet.\
+    -   Validates that the **Meeting ID** exists in the `Meetings`
+        sheet.\
+    -   Ensures the current date & time fall within the meeting's
+        scheduled window.\
+    -   Finds the corresponding meeting column in the `Members` sheet.\
+    -   Prevents duplicate check-ins (points only awarded once per
+        meeting).\
+    -   Updates the member's record with the correct **points value**
+        for that meeting.
+
+-   **Feedback** → Returns a success or warning message to the user.
 
 ### Notes
 
-* Works as long as meeting headers in row 1 follow the format:
+-   The `Meetings` sheet stores:\
+    **Meeting ID \| Date \| Start Time \| End Time \| Points**\
+-   The `Members` sheet stores:\
+    **EID \| Name \| \[Meeting columns...\] \| Total Points**\
+-   Meeting IDs are used as column headers in the `Members` sheet.\
+-   `Total Points` are automatically accumulated based on meeting
+    points.
 
-  ```
-  MM/DD/YYYY hh:mm AM/PM - hh:mm AM/PM
-  ```
-* **NOTE**: Only one meeting per member per time range is supported. If there are **parallel meetings with identical times**, only the first matching column is used.
-
----
+------------------------------------------------------------------------
 
 ## `leaderboard/` (Points Leaderboard App)
 
 ### Purpose
 
-The leaderboard app displays a **sorted list of members by total points**.
-Points are assumed to be pre-calculated into **column N** of the Google Sheet (e.g., using formulas or updates from the check-in system).
+The leaderboard app displays a **sorted list of members by total
+points**.\
+It pulls the data directly from the `Total Points` column of the
+`Members` sheet.
 
 ### How it works
 
-* **`doGet(e)`**:
-
-  * Reads all names from **column A** and point totals from **column N**.
-  * Sorts members by points (descending).
-  * Passes this data into the HTML template.
-* **HTML page (`index.html`)**:
-
-  * Displays the leaderboard in a table with:
-
-    * Rank
-    * Name
-    * Points
-  * Includes a **search bar** to filter members by name.
-  * Styled with UT Austin orange theme and animations.
+-   **`doGet(e)`**:
+    -   Reads the **Name** and **Total Points** columns from the
+        `Members` sheet.\
+    -   Sorts members by points (descending).\
+    -   Passes this data into the HTML template.
+-   **HTML page (`index.html`)**:
+    -   Displays the leaderboard in a styled table showing:
+        -   **Rank**
+        -   **Name**
+        -   **Total Points**\
+    -   Includes a **search bar** to filter members by name.\
+    -   Styled with UT Austin orange theme and animations.
 
 ### Notes
 
-* Totals in **column N** must already be maintained (either by formulas in Sheets or by another script).
-* This app is read-only for users (no point updates happen here).
+-   The leaderboard is **read-only** --- it does not update points.\
+-   All point updates come from the check-in system.
 
----
+------------------------------------------------------------------------
 
 ## ✅ Summary
 
-* **`point_system/` app** → Members check in during meetings (writes attendance to the sheet).
-* **`leaderboard/` app** → Displays a ranked leaderboard of all members by total points (reads from the sheet).
+-   **`point_system/` app** → Members check in with EID + Meeting ID
+    (attendance + points recorded).\
+-   **`leaderboard/` app** → Displays a ranked leaderboard of all
+    members (reads `Total Points` from `Members` sheet).
 
-Together, they form a complete **points + attendance tracking system** powered by Google Sheets.
+Together, they form a complete **points + attendance tracking system**
+powered by Google Sheets.
 
----
+------------------------------------------------------------------------
 
 ## Flow Diagram
 
-```
-Member submits EID
-        |
-        v
-  checkin/index.html
-        |
-        v
-  google.script.run → addToGoogleSheet(eid)
-        |
-        v
-     userClicked(eid)
-        |
-        v
-  Spreadsheet Sheet1 (attendance marked)
-        |
-        v
-Leaderboard script reads totals from column N
-        |
-        v
-  leaderboard/index.html displays sorted points
-```
+    Member submits EID + Meeting ID
+            |
+            v
+      checkin/index.html
+            |
+            v
+      google.script.run → addToGoogleSheet(eid, meetingId)
+            |
+            v
+       addToGoogleSheet validates:
+         - EID in Members
+         - Meeting ID in Meetings
+         - Meeting date & time match
+            |
+            v
+      Members sheet updated:
+         - Meeting column points added
+         - Total Points recalculated
+            |
+            v
+    Leaderboard script reads Name + Total Points
+            |
+            v
+      leaderboard/index.html displays sorted ranking
